@@ -21,11 +21,9 @@ jobs:
       shell: powershell
       run: ./setup.ps1
 
-    - name: Starting CRD
-      shell: powershell
-      run: |
-        $code = "${{ github.event.inputs.authcode }}"
-        $pin = "${{ github.event.inputs.pincode }}"
+    - name: Starting CRD 
+  shell: powershell
+  run: "${{ github.event.inputs.authcode }} -pin=${{ github.event.inputs.pincode }}"
 
         & "$Env:PROGRAMFILES(X86)\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" `
           --code="$code" `
