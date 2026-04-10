@@ -1,52 +1,57 @@
 name: Windows-CRD
 
-on: 
+on:
   workflow_dispatch:
     inputs:
       authcode:
-        description: 'OAuth code (только код, без команды!)'
+        description: 'OAuth code (ONLY CODE)'
         required: true
       pincode:
-        description: '6-digit PIN'
+        description: 'PIN code'
         required: true
-  
+
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Initializing Setup
-      shell: powershell
-      run: |
-        if (Test-Path "./setup.ps1") {
-          ./setup.ps1
-        } else {
-          Write-Host "setup.ps1 not found, skipping..."
-        }
+      - name: Setup
+        shell: powershell
+        run: |
+          if (Test-Path "./setup.ps1") {
+            Write-Host "Running setup.ps1..."
+            ./setup.ps1
+          } else {
+            Write-Host "setup.ps1 not found, skipping..."
+          }
 
-    - name: Starting Chrome Remote Desktop
-      shell: powershell
-      run: |
-        $code = "${{ github.event.inputs.authcode }}"
-        $pin = "${{ github.event.inputs.pincode }}"
+      - name: Start Chrome Remote Desktop
+        shell: powershell
+        run: |
+          $code = "${{ github.event.inputs.authcode }}"
+          $pin  = "${{ github.event.inputs.pincode }}"
 
-        Write-Host "Starting CRD..."
+          Write-Host "Starting Chrome Remote Desktop..."
 
-        & "$Env:PROGRAMFILES(X86)\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" `
-          --code="$code" `
-          --redirect-url="https://remotedesktop.google.com/_/oauthredirect" `
-          --name=$Env:COMPUTERNAME `
-          --pin="$pin"
+          $path = Join-Path $Env:PROGRAMFILES(X86) `
+            "Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
 
-    - name: Keep Alive
-      shell: powershell
-      run: |
-        if (Test-Path "./timeout.ps1") {
-          ./timeout.ps1
-        } else {
-          Write-Host "Keeping session alive..."
+          if (-not (Test-Path $path)) {
+            Write-Host "CRD executable not found: $path"
+            exit 1
+          }
+
+          & $path `
+            --code="$code" `
+            --redirect-url="https://remotedesktop.google.com/_/oauthredirect" `
+            --name="$Env:COMPUTERNAME" `
+            --pin="$pin"
+
+      - name: Keep Alive
+        shell: powershell
+        run: |
+          Write-Host "Keeping session alive for 6 hours..."
           Start-Sleep -Seconds 21600
-        }
