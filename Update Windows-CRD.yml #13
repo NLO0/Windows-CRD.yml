@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       authcode:
-        description: 'OAuth code'
+        description: 'OAuth code (только код, без команды!)'
         required: true
       pincode:
         description: '6-digit PIN'
@@ -15,16 +15,25 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
 
     - name: Initializing Setup
       shell: powershell
-      run: ./setup.ps1
+      run: |
+        if (Test-Path "./setup.ps1") {
+          ./setup.ps1
+        } else {
+          Write-Host "setup.ps1 not found, skipping..."
+        }
 
-    - name: Starting CRD 
-  shell: powershell
-  run: |
-    cmd /c "${{ github.event.inputs.authcode }} -pin=${{ github.event.inputs.pincode }}"
+    - name: Starting Chrome Remote Desktop
+      shell: powershell
+      run: |
+        $code = "${{ github.event.inputs.authcode }}"
+        $pin = "${{ github.event.inputs.pincode }}"
+
+        Write-Host "Starting CRD..."
 
         & "$Env:PROGRAMFILES(X86)\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" `
           --code="$code" `
@@ -34,4 +43,10 @@ jobs:
 
     - name: Keep Alive
       shell: powershell
-      run: ./timeout.ps1
+      run: |
+        if (Test-Path "./timeout.ps1") {
+          ./timeout.ps1
+        } else {
+          Write-Host "Keeping session alive..."
+          Start-Sleep -Seconds 21600
+        }
